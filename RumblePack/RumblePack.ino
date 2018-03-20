@@ -1,7 +1,9 @@
+
+
 /*********************************************************************
- This is an example for our nRF51822 based Bluefruit LE modules
- Uses Adafruit Controller example as a base to control a 
- Feather-based board, LED ring, accelerometer and possibly sound
+  This is an example for our nRF51822 based Bluefruit LE modules
+  Uses Adafruit Controller example as a base to control a
+  Feather-based board, LED ring, accelerometer and possibly sound
 *********************************************************************/
 
 #include <string.h>
@@ -10,34 +12,38 @@
 #include "Adafruit_BLE.h"
 #include "Adafruit_BluefruitLE_SPI.h"
 #include "Adafruit_BluefruitLE_UART.h"
+#include <Adafruit_NeoPixel.h>
+#ifdef __AVR__
+#include <avr/power.h>
+#endif
 
 #include "BluefruitConfig.h"
 
 #if SOFTWARE_SERIAL_AVAILABLE
-  #include <SoftwareSerial.h>
+#include <SoftwareSerial.h>
 #endif
 
 /*=========================================================================
     APPLICATION SETTINGS
 
-    FACTORYRESET_ENABLE       Perform a factory reset when running this sketch
-   
-                              Enabling this will put your Bluefruit LE module
+      FACTORYRESET_ENABLE       Perform a factory reset when running this sketch
+     
+                                Enabling this will put your Bluefruit LE module
                               in a 'known good' state and clear any config
                               data set in previous sketches or projects, so
-                              running this at least once is a good idea.
-   
-                              When deploying your project, however, you will
+                                running this at least once is a good idea.
+     
+                                When deploying your project, however, you will
                               want to disable factory reset by setting this
                               value to 0.  If you are making changes to your
-                              Bluefruit LE device via AT commands, and those
+                                Bluefruit LE device via AT commands, and those
                               changes aren't persisting across resets, this
                               is the reason why.  Factory reset will erase
                               the non-volatile memory where config data is
                               stored, setting it back to factory default
                               values.
-       
-                              Some sketches that require you to bond to a
+         
+                                Some sketches that require you to bond to a
                               central device (HID mouse, keyboard, etc.)
                               won't work at all with this feature enabled
                               since the factory reset will clear all of the
@@ -48,16 +54,16 @@
                               "DISABLE" or "MODE" or "BLEUART" or
                               "HWUART"  or "SPI"  or "MANUAL"
     -----------------------------------------------------------------------*/
-    #define FACTORYRESET_ENABLE         1
-    #define MINIMUM_FIRMWARE_VERSION    "0.6.6"
-    #define MODE_LED_BEHAVIOUR          "MODE"
+#define FACTORYRESET_ENABLE         1
+#define MINIMUM_FIRMWARE_VERSION    "0.6.6"
+#define MODE_LED_BEHAVIOUR          "MODE"
 /*=========================================================================*/
 
 // Create the bluefruit object, either software serial...uncomment these lines
 /*
-SoftwareSerial bluefruitSS = SoftwareSerial(BLUEFRUIT_SWUART_TXD_PIN, BLUEFRUIT_SWUART_RXD_PIN);
+  SoftwareSerial bluefruitSS = SoftwareSerial(BLUEFRUIT_SWUART_TXD_PIN, BLUEFRUIT_SWUART_RXD_PIN);
 
-Adafruit_BluefruitLE_UART ble(bluefruitSS, BLUEFRUIT_UART_MODE_PIN,
+  Adafruit_BluefruitLE_UART ble(bluefruitSS, BLUEFRUIT_UART_MODE_PIN,
                       BLUEFRUIT_UART_CTS_PIN, BLUEFRUIT_UART_RTS_PIN);
 */
 
@@ -79,6 +85,14 @@ void error(const __FlashStringHelper*err) {
   while (1);
 }
 
+#define DATA_PIN 9
+
+#define NUM_LEDS 12
+
+#define BRIGHTNESS 50
+
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, DATA_PIN, NEO_GRB + NEO_KHZ800);
+
 // function prototypes over in packetparser.cpp
 uint8_t readPacket(Adafruit_BLE *ble, uint16_t timeout);
 float parsefloat(uint8_t *buffer);
@@ -96,7 +110,13 @@ extern uint8_t packetbuffer[];
 /**************************************************************************/
 void setup(void)
 {
-  while (!Serial);  // required for Flora & Micro
+
+  strip.setBrightness(BRIGHTNESS);
+  strip.begin();
+  strip.show(); // Initialize all pixels to 'off'
+
+
+  // while (!Serial);  // required for Flora & Micro
   delay(500);
 
   Serial.begin(115200);
@@ -116,7 +136,7 @@ void setup(void)
   {
     /* Perform a factory reset to make sure everything is in a known state */
     Serial.println(F("Performing a factory reset: "));
-    if ( ! ble.factoryReset() ){
+    if ( ! ble.factoryReset() ) {
       error(F("Couldn't factory reset"));
     }
   }
@@ -137,7 +157,7 @@ void setup(void)
 
   /* Wait for connection */
   while (! ble.isConnected()) {
-      delay(500);
+    delay(500);
   }
 
   Serial.println(F("******************************"));
@@ -165,6 +185,8 @@ void setup(void)
 /**************************************************************************/
 void loop(void)
 {
+
+
   /* Wait for new data to arrive */
   uint8_t len = readPacket(&ble, BLE_READPACKET_TIMEOUT);
   if (len == 0) return;
@@ -196,15 +218,16 @@ void loop(void)
     } else {
       Serial.println(" released");
     }
-    doRumblePack(butnum, pressed);
+
+    doRumblePack(buttnum, pressed);
   }
 
   // GPS Location
   if (packetbuffer[1] == 'L') {
     float lat, lon, alt;
-    lat = parsefloat(packetbuffer+2);
-    lon = parsefloat(packetbuffer+6);
-    alt = parsefloat(packetbuffer+10);
+    lat = parsefloat(packetbuffer + 2);
+    lon = parsefloat(packetbuffer + 6);
+    alt = parsefloat(packetbuffer + 10);
     Serial.print("GPS Location\t");
     Serial.print("Lat: "); Serial.print(lat, 4); // 4 digits of precision!
     Serial.print('\t');
@@ -216,9 +239,9 @@ void loop(void)
   // Accelerometer
   if (packetbuffer[1] == 'A') {
     float x, y, z;
-    x = parsefloat(packetbuffer+2);
-    y = parsefloat(packetbuffer+6);
-    z = parsefloat(packetbuffer+10);
+    x = parsefloat(packetbuffer + 2);
+    y = parsefloat(packetbuffer + 6);
+    z = parsefloat(packetbuffer + 10);
     Serial.print("Accel\t");
     Serial.print(x); Serial.print('\t');
     Serial.print(y); Serial.print('\t');
@@ -228,9 +251,9 @@ void loop(void)
   // Magnetometer
   if (packetbuffer[1] == 'M') {
     float x, y, z;
-    x = parsefloat(packetbuffer+2);
-    y = parsefloat(packetbuffer+6);
-    z = parsefloat(packetbuffer+10);
+    x = parsefloat(packetbuffer + 2);
+    y = parsefloat(packetbuffer + 6);
+    z = parsefloat(packetbuffer + 10);
     Serial.print("Mag\t");
     Serial.print(x); Serial.print('\t');
     Serial.print(y); Serial.print('\t');
@@ -240,9 +263,9 @@ void loop(void)
   // Gyroscope
   if (packetbuffer[1] == 'G') {
     float x, y, z;
-    x = parsefloat(packetbuffer+2);
-    y = parsefloat(packetbuffer+6);
-    z = parsefloat(packetbuffer+10);
+    x = parsefloat(packetbuffer + 2);
+    y = parsefloat(packetbuffer + 6);
+    z = parsefloat(packetbuffer + 10);
     Serial.print("Gyro\t");
     Serial.print(x); Serial.print('\t');
     Serial.print(y); Serial.print('\t');
@@ -252,10 +275,10 @@ void loop(void)
   // Quaternions
   if (packetbuffer[1] == 'Q') {
     float x, y, z, w;
-    x = parsefloat(packetbuffer+2);
-    y = parsefloat(packetbuffer+6);
-    z = parsefloat(packetbuffer+10);
-    w = parsefloat(packetbuffer+14);
+    x = parsefloat(packetbuffer + 2);
+    y = parsefloat(packetbuffer + 6);
+    z = parsefloat(packetbuffer + 10);
+    w = parsefloat(packetbuffer + 14);
     Serial.print("Quat\t");
     Serial.print(x); Serial.print('\t');
     Serial.print(y); Serial.print('\t');
@@ -263,10 +286,77 @@ void loop(void)
     Serial.print(w); Serial.println();
   }
 
-  void doRumblePack(uint8_t butnum, boolean pressed){
-  	switch (butnum){
+}
 
-  	
-  	}
+void doRumblePack(uint8_t butnum, boolean pressed) {
+  int inputCode = (butnum * 2) + (int)pressed; // encode butt number and pressed into one variable
+
+  Serial.print("inputCode ");
+  Serial.println(inputCode);
+
+  switch (inputCode) {
+
+    case 3:   // button1 pushed
+      colorWipe(strip.Color(0, 255, 50), 10); // Red
+      break;
+
+    case 2:   // button1 released
+      colorWipe(strip.Color(0, 0, 0), 0);     // Black
+      break;
+
+    case 5:   // button2 pushed
+
+      break;
+
+    case 4:   // button2 released
+
+      break;
+
+    case 7:   // button3 pushed
+      break;
+
+    case 6:   // button3 released
+      break;
+
+    case 9:   // button4 pushed
+      break;
+
+    case 8:   // button4 released
+      break;
+
+    case 11:   // button5 pushed
+      break;
+
+    case 10:   // button5 released
+      break;
+
+    case 13:   // button6 pushed
+      break;
+
+    case 12:   // button6 released
+      break;
+
+    case 15:   // button7 pushed
+      break;
+
+    case 14:   // button7 released
+      break;
+
+    case 17:   // button7 pushed
+      break;
+
+    case 16:   // button7 released
+      break;
   }
+}
+
+// Fill the dots one after the other with a color
+void colorWipe(uint32_t c, uint8_t wait) {
+  Serial.println("CW");
+  for (uint16_t i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, c);
+    strip.show();
+    delay(wait);
+  }
+}
 
