@@ -246,7 +246,7 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
   int inputCode = (butnum * 2) + (int)pressed; // encode butt number and pressed into one variable
 
 //  Serial.print("inputCode "); Serial.println(inputCode);
-
+// governs the buttons - you can rearrange the buttons without fear
   switch (inputCode) {
 
     case 3:   // button1 pushed
@@ -279,7 +279,7 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
       TCBlinkOn = !TCBlinkOn;
       if (TCBlinkOn) {
         // setBlinkColor(uint32_t color, uint32_t color2, uint16_t rate, uint32_t totalBlTime)
-        setTwoColorBlink(strip.Color(255, 0, 0), strip.Color(0, 255, 30), 120, 3000); // note total blink time param
+        setTwoColorBlink(strip.Color(255, 0, 0), strip.Color(0, 255, 30), 120, 3000); // note timer - last param
       }
       else {
         TCtotalBlinkTime = 0; // turn off blink
@@ -294,7 +294,8 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
       BlinkOn2 = !BlinkOn2;
       if (BlinkOn2) {
         // setBlinkColor(uint32_t color, uint32_t color2, uint16_t rate, uint32_t totalBlTime)
-        setBlinkColor(strip.Color(255, 0, 0), strip.Color(30, 0, 50), 75, 3000); // note total blink time param
+        setBlinkColor(strip.Color(255, 0, 0), strip.Color(30, 0, 50), 75, 3000); // note timer - last param
+      
       }
       else {
         totalBlinkTime = 0; // turn off blink
@@ -306,8 +307,8 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
       break;
 
     case 11:   // button5 pushed
-      colorWipeOn1 = !colorWipeOn1;
-      if (colorWipeOn1) {
+      colorWipeOn2 = !colorWipeOn2;
+      if (colorWipeOn2) {
         colorWipe(strip.Color(200, 0, 255), 10); // Purple
       }
       else {
@@ -319,8 +320,8 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
       break;
 
     case 13:   // button6 pushed
-      colorWipeOn1 = !colorWipeOn1;
-      if (colorWipeOn1) {
+      colorWipeOn3 = !colorWipeOn3;
+      if (colorWipeOn3) {
         colorWipe(strip.Color(0, 0, 255), 10);  // Blue
       }
       else {
@@ -335,12 +336,12 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
       RFon = !RFon;
       if (RFon) {
         //setRandomFlicker(uint32_t color, uint32_t color2, uint32_t totalBlTime)
-        setRandomFlicker(strip.Color(130, 0, 255), strip.Color(200, 100, 255), 5000);
+        setRandomFlicker(strip.Color(130, 0, 255), strip.Color(200, 100, 255), 5000); // note timer - last param
       }
       else {
         RFtotalBlinkTime = 0;                // stops random flicker function
         reverseColorWipe(strip.Color(0, 0, 0), 10); // turn off LEDs
-      }
+      }  
       break;
 
     case 14:   // button7 released
@@ -432,7 +433,7 @@ void TwoColorBlink() {
      // Serial.print("onOff "); Serial.println(onOff);
       for (uint16_t i = 0; i < strip.numPixels(); i++) {
         if (onOff) {
-          if (i % 2 == 1) {
+          if (i % 2 == 1) { // even / odd test
             strip.setPixelColor(i, TCblink2Color);
           }
           else {
@@ -557,7 +558,7 @@ void rainbowCycle() {
       }
       else {
         if (strobe) {
-        	offset+=2;
+        	offset+=3;
           uint32_t color = Wheel(((i * 256 / strip.numPixels()) + offset) & 255);
           uint8_t redVal = (float)red(color)  * 0.2;
           uint8_t greenVal = (float)green(color)  * 0.2;
@@ -566,7 +567,7 @@ void rainbowCycle() {
           delay(5);
         }
         else {
-          offset+=2;
+          offset+=3;
           uint32_t color = Wheel(((i * 256 / strip.numPixels()) + offset) & 255);
           strip.setPixelColor(i, color);
           delay(5);
@@ -619,6 +620,7 @@ void randomFlicker() {
         strip.setPixelColor(i, strip.Color(0, 0, 0));
       }
       strip.show();
+      delay(5);
       RFtidyUp = 0;
       RFon = 0;
     }
