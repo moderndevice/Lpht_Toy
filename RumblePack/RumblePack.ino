@@ -107,6 +107,10 @@ uint16_t  blinkRate, TCblinkRate;
 uint32_t totalBlinkTime, TCtotalBlinkTime;
 uint8_t  BlinkStart, TCblinkStart, BlinkOn, BlinkOn2, TCBlinkOn;
 uint8_t  colorWipeOn1 = 0, colorWipeOn2 = 0, colorWipeOn3 = 0, colorWipeOn4 = 0;
+uint32_t  RFblinkColor, RFblink2Color; // for random flicker
+uint32_t  RFtotalBlinkTime;
+uint8_t RFStart, RFon, RBon, rainbowReset = 0;
+uint16_t rainbowDelayTime;
 
 
 /**************************************************************************/
@@ -195,9 +199,11 @@ void loop(void)
   colorFlickerGreeen2();
   BlinkColor();
   TwoColorBlink();
+  randomFlicker();
+  rainbowCycle();
 
   /* Wait for new data to arrive */
-  uint8_t len = readPacket(&ble, 25 ); // BLE_READPACKET_TIMEOUT
+  uint8_t len = readPacket(&ble, 10 ); // BLE_READPACKET_TIMEOUT
   if (len == 0) return;  // nothing else will happen till we are connected
 
 
@@ -250,8 +256,8 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
         colorWipe(strip.Color(0, 255, 0), 10); // Green
       }
       else {
-      	reverseColorWipe(strip.Color(0, 0, 0), 10);
-      //  colorWipe(strip.Color(0, 0, 0), 0);     // Black
+        reverseColorWipe(strip.Color(0, 0, 0), 10);
+        //  colorWipe(strip.Color(0, 0, 0), 0);     // Black
       }
       break;
 
@@ -274,7 +280,7 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
       TCBlinkOn = !TCBlinkOn;
       if (TCBlinkOn) {
         // setBlinkColor(uint32_t color, uint32_t color2, uint16_t rate, uint32_t totalBlTime)
-        setTwoColorBlink(strip.Color(255, 0, 0), strip.Color(0, 255, 0), 120, 3000); // note total blink time param
+        setTwoColorBlink(strip.Color(255, 0, 0), strip.Color(0, 255, 30), 120, 3000); // note total blink time param
       }
       else {
         TCtotalBlinkTime = 0; // turn off blink
@@ -303,10 +309,10 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
     case 11:   // button5 pushed
       colorWipeOn1 = !colorWipeOn1;
       if (colorWipeOn1) {
-        colorWipe(strip.Color(200, 0, 255), 10); // Green
+        colorWipe(strip.Color(200, 0, 255), 10); // Purple
       }
       else {
-       reverseColorWipe(strip.Color(0, 0, 0), 10);
+        reverseColorWipe(strip.Color(0, 0, 0), 10);
       }
       break;
 
@@ -314,23 +320,50 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
       break;
 
     case 13:   // button6 pushed
+      colorWipeOn1 = !colorWipeOn1;
+      if (colorWipeOn1) {
+        colorWipe(strip.Color(0, 0, 255), 10);  // Blue
+      }
+      else {
+        reverseColorWipe(strip.Color(0, 0, 0), 10);
+      }
       break;
 
     case 12:   // button6 released
       break;
 
     case 15:   // button7 pushed
+      RFon = !RFon;
+      if (RFon) {
+        //setRandomFlicker(uint32_t color, uint32_t color2, uint32_t totalBlTime)
+        setRandomFlicker(strip.Color(130, 0, 255), strip.Color(200, 100, 255), 5000);
+      }
+      else {
+        RFtotalBlinkTime = 0;                // stops random flicker function
+        reverseColorWipe(strip.Color(0, 0, 0), 10); // turn off LEDs
+      }
       break;
 
     case 14:   // button7 released
       break;
 
-    case 17:   // button7 pushed
+    case 17:   // button8 pushed
+      RBon = !RBon;
+      if (RBon) {
+        //setRandomFlicker(uint32_t color, uint32_t color2, uint32_t totalBlTime)
+        rainbowDelayTime = 2;
+        rainbowReset = 1;
+        rainbowCycle();
+      }
+      else {
+        RFtotalBlinkTime = 0;                // stops random flicker function
+        reverseColorWipe(strip.Color(0, 0, 0), 10); // turn off LEDs
+      }
+
       break;
 
-    case 16:   // button7 released
+    case 16:   // button8 released
       break;
-
   }
 }
 
@@ -351,8 +384,8 @@ void reverseColorWipe(uint32_t c, uint8_t wait) {
     strip.show();
     delay(wait);
   }
-    strip.setPixelColor(0, c);
-    strip.show();
+  strip.setPixelColor(0, c);
+  strip.show();
 }
 
 void colorFlickerGreeen() {
@@ -365,21 +398,20 @@ void colorFlickerGreeen() {
 }
 
 void colorFlickerGreeen2() {
-  static float offset1, dimmer = 0.02, adder = 1.04;
+  static float offset1, dimmer = 0.02, adder = 1.07;
   if (colorFlickerGreenOn) {
     offset1 += 1.3;
     dimmer *= adder;
-    if (dimmer > 1.0) {
-      dimmer = 1.0;
-      adder =  0.96;
+    if (dimmer > 2.0) {
+      adder =  0.93;
     }
-    if (dimmer < 0.03) {
-      dimmer = 0.03;
-      adder = 1.04;
+    if (dimmer < 0.1) {
+      dimmer = 0.1;
+      adder = 1.07;
     }
 
     for (uint16_t i = 0; i < strip.numPixels(); i++) {
-      strip.setPixelColor(i, strip.Color(0, ((sin(offset1 + ((float)i / 2.0)) + 1.0) * 127.0) * dimmer, 0));
+      strip.setPixelColor(i, strip.Color(0, ((sin(offset1 + ((float)i / 2.0)) + 1.0) * 63.0) * dimmer, 0));
     }
     strip.show();
   }
@@ -493,28 +525,121 @@ void allOff() {
 
 }
 
-// Slightly different, this makes the rainbow equally distributed throughout
-void rainbowCycle(uint8_t wait) {
+void rainbowCycle() {
   uint16_t i, j;
+  static uint8_t offset, strobeOn = 0, strobe;
+  static float dimmer = 0.02, adder = 1.04; // adder sets dim up speed
 
-    for(i=0; i< strip.numPixels(); i++) {
-      strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
+
+
+  if (RBon) {
+
+    if (rainbowReset) {
+      dimmer = 0.02;
+      adder = 1.04;
+      rainbowReset = 0;
+      strobeOn = 0;
+    }
+
+    dimmer *= adder;
+    if (dimmer > 1.0) {
+      dimmer = 1.0;
+      strobeOn = 1;
+    }
+
+    strobe = !strobe;
+    for (i = 0; i < strip.numPixels(); i++) {
+
+      if (!strobeOn) {
+        offset++;
+        uint32_t color = Wheel(((i * 256 / strip.numPixels()) + offset) & 255);
+        uint8_t redVal = (float)red(color)  * dimmer;
+        uint8_t greenVal = (float)green(color)  * dimmer;
+        uint8_t blueVal = (float)blue(color)  * dimmer;
+        strip.setPixelColor(i, strip.Color(redVal, greenVal, blueVal)); //strip.Color(redVal, greenVal, blueVal)
+      }
+      else {
+        if (strobe) {
+          uint32_t color = Wheel(((i * 256 / strip.numPixels()) + offset) & 255);
+          uint8_t redVal = (float)red(color)  * 0.5;
+          uint8_t greenVal = (float)green(color)  * 0.5;
+          uint8_t blueVal = (float)blue(color)  * 0.5;
+          strip.setPixelColor(i, strip.Color(redVal, greenVal, blueVal));
+          delay(5);
+        }
+        else {
+          offset++;
+          uint32_t color = Wheel(((i * 256 / strip.numPixels()) + offset) & 255);
+          strip.setPixelColor(i, color);
+          delay(5);
+        }
+      }
     }
     strip.show();
-    delay(wait);
+    delay(rainbowDelayTime);
+  }
 }
 
 // Input a value 0 to 255 to get a color value.
 // The colours are a transition r - g - b - back to r.
 uint32_t Wheel(byte WheelPos) {
   WheelPos = 255 - WheelPos;
-  if(WheelPos < 85) {
+  if (WheelPos < 85) {
     return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
   }
-  if(WheelPos < 170) {
+  if (WheelPos < 170) {
     WheelPos -= 85;
     return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
   WheelPos -= 170;
   return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
+
+void randomFlicker() {
+  static uint32_t  RFlastTime, RFstartTime;
+  static uint8_t  RFtidyUp = 0;
+
+  if (RFStart) {
+    RFstartTime = millis();
+    RFtidyUp = 1;
+    RFStart = 0;  // make sure startTime only gets set once
+  }
+
+  if (millis() - RFstartTime < RFtotalBlinkTime) {
+    for (uint16_t i = 0; i < strip.numPixels(); i++) {
+      strip.setPixelColor(i, RFblinkColor);
+      if (i == random(strip.numPixels())) {  // creates random highlights
+        strip.setPixelColor(i, RFblink2Color);
+      }
+    }
+    strip.show();
+    RFlastTime = millis();
+  }
+  else {
+    if (RFtidyUp) { // LEDs might be on - don't leave them on
+      for (uint16_t i = 0; i < strip.numPixels(); i++) {
+        strip.setPixelColor(i, strip.Color(0, 0, 0));
+      }
+      strip.show();
+      RFtidyUp = 0;
+      RFon = 0;
+    }
+  }
+}
+
+void setRandomFlicker(uint32_t color, uint32_t color2, uint32_t totalBlTime) {
+  RFblinkColor = color;
+  RFblink2Color = color2;
+  RFtotalBlinkTime = totalBlTime;
+  RFStart = 1;
+}
+
+uint8_t red(uint32_t c) {
+  return (c >> 16);
+}
+uint8_t green(uint32_t c) {
+  return (c >> 8);
+}
+uint8_t blue(uint32_t c) {
+  return (c);
 }
