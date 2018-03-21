@@ -245,8 +245,7 @@ void loop(void)
 void doRumblePack(uint8_t butnum, boolean pressed) {
   int inputCode = (butnum * 2) + (int)pressed; // encode butt number and pressed into one variable
 
-  Serial.print("inputCode ");
-  Serial.println(inputCode);
+//  Serial.print("inputCode "); Serial.println(inputCode);
 
   switch (inputCode) {
 
@@ -430,7 +429,7 @@ void TwoColorBlink() {
   if (millis() - TCstartTime < TCtotalBlinkTime) {
     if (millis() - TClastTime > TCblinkRate) {
       onOff = !onOff;
-      Serial.print("onOff "); Serial.println(onOff);
+     // Serial.print("onOff "); Serial.println(onOff);
       for (uint16_t i = 0; i < strip.numPixels(); i++) {
         if (onOff) {
           if (i % 2 == 1) {
@@ -530,8 +529,6 @@ void rainbowCycle() {
   static uint8_t offset, strobeOn = 0, strobe;
   static float dimmer = 0.02, adder = 1.04; // adder sets dim up speed
 
-
-
   if (RBon) {
 
     if (rainbowReset) {
@@ -560,15 +557,16 @@ void rainbowCycle() {
       }
       else {
         if (strobe) {
+        	offset+=2;
           uint32_t color = Wheel(((i * 256 / strip.numPixels()) + offset) & 255);
-          uint8_t redVal = (float)red(color)  * 0.5;
-          uint8_t greenVal = (float)green(color)  * 0.5;
-          uint8_t blueVal = (float)blue(color)  * 0.5;
+          uint8_t redVal = (float)red(color)  * 0.2;
+          uint8_t greenVal = (float)green(color)  * 0.2;
+          uint8_t blueVal = (float)blue(color)  * 0.2;
           strip.setPixelColor(i, strip.Color(redVal, greenVal, blueVal));
           delay(5);
         }
         else {
-          offset++;
+          offset+=2;
           uint32_t color = Wheel(((i * 256 / strip.numPixels()) + offset) & 255);
           strip.setPixelColor(i, color);
           delay(5);
