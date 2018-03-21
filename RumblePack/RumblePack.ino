@@ -100,6 +100,13 @@ void printHex(const uint8_t * data, const uint32_t numBytes);
 
 // the packet buffer
 extern uint8_t packetbuffer[];
+uint8_t colorFlickerGreenOn = 0;  // for colorFlicker effect
+uint8_t colorBlinkGreenOn = 0;         // for colorBLinkOn effect
+uint32_t  blinkColor, blink2Color, TCblinkColor, TCblink2Color;  // for blink functions
+uint16_t  blinkRate, TCblinkRate;
+uint32_t totalBlinkTime, TCtotalBlinkTime;
+uint8_t  BlinkStart, TCblinkStart, BlinkOn, BlinkOn2, TCBlinkOn;
+uint8_t  colorWipeOn1 = 0, colorWipeOn2 = 0, colorWipeOn3 = 0, colorWipeOn4 = 0;
 
 
 /**************************************************************************/
@@ -185,11 +192,14 @@ void setup(void)
 /**************************************************************************/
 void loop(void)
 {
-
+  colorFlickerGreeen2();
+  BlinkColor();
+  TwoColorBlink();
 
   /* Wait for new data to arrive */
-  uint8_t len = readPacket(&ble, BLE_READPACKET_TIMEOUT);
-  if (len == 0) return;
+  uint8_t len = readPacket(&ble, 25 ); // BLE_READPACKET_TIMEOUT
+  if (len == 0) return;  // nothing else will happen till we are connected
+
 
   /* Got a packet! */
   // printHex(packetbuffer, len);
@@ -222,69 +232,7 @@ void loop(void)
     doRumblePack(buttnum, pressed);
   }
 
-  // GPS Location
-  if (packetbuffer[1] == 'L') {
-    float lat, lon, alt;
-    lat = parsefloat(packetbuffer + 2);
-    lon = parsefloat(packetbuffer + 6);
-    alt = parsefloat(packetbuffer + 10);
-    Serial.print("GPS Location\t");
-    Serial.print("Lat: "); Serial.print(lat, 4); // 4 digits of precision!
-    Serial.print('\t');
-    Serial.print("Lon: "); Serial.print(lon, 4); // 4 digits of precision!
-    Serial.print('\t');
-    Serial.print(alt, 4); Serial.println(" meters");
-  }
 
-  // Accelerometer
-  if (packetbuffer[1] == 'A') {
-    float x, y, z;
-    x = parsefloat(packetbuffer + 2);
-    y = parsefloat(packetbuffer + 6);
-    z = parsefloat(packetbuffer + 10);
-    Serial.print("Accel\t");
-    Serial.print(x); Serial.print('\t');
-    Serial.print(y); Serial.print('\t');
-    Serial.print(z); Serial.println();
-  }
-
-  // Magnetometer
-  if (packetbuffer[1] == 'M') {
-    float x, y, z;
-    x = parsefloat(packetbuffer + 2);
-    y = parsefloat(packetbuffer + 6);
-    z = parsefloat(packetbuffer + 10);
-    Serial.print("Mag\t");
-    Serial.print(x); Serial.print('\t');
-    Serial.print(y); Serial.print('\t');
-    Serial.print(z); Serial.println();
-  }
-
-  // Gyroscope
-  if (packetbuffer[1] == 'G') {
-    float x, y, z;
-    x = parsefloat(packetbuffer + 2);
-    y = parsefloat(packetbuffer + 6);
-    z = parsefloat(packetbuffer + 10);
-    Serial.print("Gyro\t");
-    Serial.print(x); Serial.print('\t');
-    Serial.print(y); Serial.print('\t');
-    Serial.print(z); Serial.println();
-  }
-
-  // Quaternions
-  if (packetbuffer[1] == 'Q') {
-    float x, y, z, w;
-    x = parsefloat(packetbuffer + 2);
-    y = parsefloat(packetbuffer + 6);
-    z = parsefloat(packetbuffer + 10);
-    w = parsefloat(packetbuffer + 14);
-    Serial.print("Quat\t");
-    Serial.print(x); Serial.print('\t');
-    Serial.print(y); Serial.print('\t');
-    Serial.print(z); Serial.print('\t');
-    Serial.print(w); Serial.println();
-  }
 
 }
 
@@ -297,28 +245,55 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
   switch (inputCode) {
 
     case 3:   // button1 pushed
-      colorWipe(strip.Color(0, 255, 50), 10); // Red
+      colorWipeOn1 = !colorWipeOn1;
+      if (colorWipeOn1) {
+        colorWipe(strip.Color(0, 255, 0), 10); // Green
+      }
+      else {
+        colorWipe(strip.Color(0, 0, 0), 0);     // Black
+      }
       break;
 
     case 2:   // button1 released
-      colorWipe(strip.Color(0, 0, 0), 0);     // Black
       break;
 
     case 5:   // button2 pushed
-
+      colorFlickerGreenOn = !colorFlickerGreenOn;  // green flicker
+      if (!colorFlickerGreenOn) {
+        colorWipe(strip.Color(0, 0, 0), 0);     // Black
+      }
       break;
 
     case 4:   // button2 released
-
+      // colorFlickerGreenOn = 0;
+      //  colorWipe(strip.Color(0, 0, 0), 0);     // Black
       break;
 
     case 7:   // button3 pushed
+      TCBlinkOn = !TCBlinkOn;
+      if (TCBlinkOn) {
+        // setBlinkColor(uint32_t color, uint32_t color2, uint16_t rate, uint32_t totalBlTime)
+        setTwoColorBlink(strip.Color(255, 0, 0), strip.Color(0, 255, 0), 120, 3000); // note total blink time param
+      }
+      else {
+        TCtotalBlinkTime = 0; // turn off blink
+        colorWipe(strip.Color(0, 0, 0), 0);     // turn off LEDs if not off
+      }
       break;
 
     case 6:   // button3 released
       break;
 
     case 9:   // button4 pushed
+      BlinkOn2 = !BlinkOn2;
+      if (BlinkOn2) {
+        // setBlinkColor(uint32_t color, uint32_t color2, uint16_t rate, uint32_t totalBlTime)
+        setBlinkColor(strip.Color(255, 0, 0), strip.Color(0, 0, 0), 75, 3000); // note total blink time param
+      }
+      else {
+        totalBlinkTime = 0; // turn off blink
+        colorWipe(strip.Color(0, 0, 0), 0);     // turn off LEDs if not off
+      }
       break;
 
     case 8:   // button4 released
@@ -347,12 +322,13 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
 
     case 16:   // button7 released
       break;
+
   }
 }
 
+
 // Fill the dots one after the other with a color
 void colorWipe(uint32_t c, uint8_t wait) {
-  Serial.println("CW");
   for (uint16_t i = 0; i < strip.numPixels(); i++) {
     strip.setPixelColor(i, c);
     strip.show();
@@ -360,3 +336,140 @@ void colorWipe(uint32_t c, uint8_t wait) {
   }
 }
 
+void colorFlickerGreeen() {
+  if (colorFlickerGreenOn) {
+    for (uint16_t i = 0; i < strip.numPixels(); i++) {
+      strip.setPixelColor(i, strip.Color(0, random(5) * 64, 0));
+    }
+    strip.show();
+  }
+}
+
+void colorFlickerGreeen2() {
+  static float offset1, dimmer = 0.02, adder = 1.03;
+  if (colorFlickerGreenOn) {
+    offset1 += 0.9;
+    dimmer *= adder;
+    if (dimmer > 1.0) {
+      dimmer = 1.0;
+      adder =  0.97;
+    }
+    if (dimmer < 0.03) {
+      dimmer = 0.03;
+      adder = 1.03;
+    }
+
+    for (uint16_t i = 0; i < strip.numPixels(); i++) {
+      strip.setPixelColor(i, strip.Color(0, ((sin(offset1 + ((float)i / 2.0)) + 1.0) * 100.0) * dimmer, 0));
+    }
+    strip.show();
+  }
+}
+
+void TwoColorBlink() {
+  static uint32_t  TClastTime, TCstartTime;
+  static uint8_t onOff=0, tidyUp = 0;
+
+  if (TCblinkStart) {
+    TCstartTime = millis();
+    tidyUp = 1;
+    TCblinkStart = 0;  // make sure startTime only gets set once
+  }
+
+  if (millis() - TCstartTime < TCtotalBlinkTime) {
+    if (millis() - TClastTime > TCblinkRate) {
+      onOff = !onOff;
+      Serial.print("onOff "); Serial.println(onOff);
+      for (uint16_t i = 0; i < strip.numPixels(); i++) {
+        if (onOff) {
+          if (i % 2 == 1) {
+            strip.setPixelColor(i, TCblink2Color);
+          }
+          else {
+            strip.setPixelColor(i, TCblinkColor);
+          }
+        }
+        else {
+          if (i % 2 == 1) {
+            strip.setPixelColor(i, TCblinkColor);
+          }
+          else {
+            strip.setPixelColor(i, TCblink2Color);
+          }
+        }
+      }
+      strip.show();
+      TClastTime = millis();
+    }  
+  }
+
+  else {
+    if (tidyUp) { // LEDs might be on - don't leave them on
+      for (uint16_t i = 0; i < strip.numPixels(); i++) {
+        strip.setPixelColor(i, strip.Color(0, 0, 0));
+      }
+      strip.show();
+      tidyUp = 0;
+      TCBlinkOn = 0;
+    }
+  }
+}
+
+void setTwoColorBlink(uint32_t color, uint32_t color2, uint16_t rate, uint32_t totalBlTime) {
+  TCblinkColor = color;
+  TCblink2Color = color2;
+  TCblinkRate = rate;
+  TCtotalBlinkTime = totalBlTime;
+  TCblinkStart = 1;
+}
+
+
+
+void BlinkColor() {
+  static uint32_t  lastTime, startTime;
+  static uint8_t onOff, tidyUp = 0;
+
+  if (BlinkStart) {
+    startTime = millis();
+    tidyUp = 1;
+    BlinkStart = 0;  // make sure startTime only gets set once
+  }
+
+  if (millis() - startTime < totalBlinkTime) {
+    if (millis() - lastTime > blinkRate) {
+      onOff = !onOff;
+      for (uint16_t i = 0; i < strip.numPixels(); i++) {
+        if (onOff) {
+          strip.setPixelColor(i, blinkColor);
+        }
+        else {
+          strip.setPixelColor(i, blink2Color);
+        }
+      }
+      strip.show();
+      lastTime = millis();
+    }
+  }
+  else {
+    if (tidyUp) { // LEDs might be on - don't leave them on
+      for (uint16_t i = 0; i < strip.numPixels(); i++) {
+        strip.setPixelColor(i, strip.Color(0, 0, 0));
+      }
+      strip.show();
+      tidyUp = 0;
+      BlinkOn2 = 0;
+    }
+  }
+}
+
+void setBlinkColor(uint32_t color, uint32_t color2, uint16_t rate, uint32_t totalBlTime) {
+  blinkColor = color;
+  blink2Color = color2;
+  blinkRate = rate;
+  totalBlinkTime = totalBlTime;
+  BlinkStart = 1;
+}
+
+void allOff() {
+
+}
