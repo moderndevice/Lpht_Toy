@@ -250,7 +250,8 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
         colorWipe(strip.Color(0, 255, 0), 10); // Green
       }
       else {
-        colorWipe(strip.Color(0, 0, 0), 0);     // Black
+      	reverseColorWipe(strip.Color(0, 0, 0), 10);
+      //  colorWipe(strip.Color(0, 0, 0), 0);     // Black
       }
       break;
 
@@ -288,7 +289,7 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
       BlinkOn2 = !BlinkOn2;
       if (BlinkOn2) {
         // setBlinkColor(uint32_t color, uint32_t color2, uint16_t rate, uint32_t totalBlTime)
-        setBlinkColor(strip.Color(255, 0, 0), strip.Color(0, 0, 0), 75, 3000); // note total blink time param
+        setBlinkColor(strip.Color(255, 0, 0), strip.Color(30, 0, 50), 75, 3000); // note total blink time param
       }
       else {
         totalBlinkTime = 0; // turn off blink
@@ -300,6 +301,13 @@ void doRumblePack(uint8_t butnum, boolean pressed) {
       break;
 
     case 11:   // button5 pushed
+      colorWipeOn1 = !colorWipeOn1;
+      if (colorWipeOn1) {
+        colorWipe(strip.Color(200, 0, 255), 10); // Green
+      }
+      else {
+       reverseColorWipe(strip.Color(0, 0, 0), 10);
+      }
       break;
 
     case 10:   // button5 released
@@ -336,6 +344,17 @@ void colorWipe(uint32_t c, uint8_t wait) {
   }
 }
 
+// Fill the dots one after the other with a color
+void reverseColorWipe(uint32_t c, uint8_t wait) {
+  for (uint16_t i = (strip.numPixels() - 1); i > 0; i--) {
+    strip.setPixelColor(i, c);
+    strip.show();
+    delay(wait);
+  }
+    strip.setPixelColor(0, c);
+    strip.show();
+}
+
 void colorFlickerGreeen() {
   if (colorFlickerGreenOn) {
     for (uint16_t i = 0; i < strip.numPixels(); i++) {
@@ -346,21 +365,21 @@ void colorFlickerGreeen() {
 }
 
 void colorFlickerGreeen2() {
-  static float offset1, dimmer = 0.02, adder = 1.03;
+  static float offset1, dimmer = 0.02, adder = 1.04;
   if (colorFlickerGreenOn) {
-    offset1 += 0.9;
+    offset1 += 1.3;
     dimmer *= adder;
     if (dimmer > 1.0) {
       dimmer = 1.0;
-      adder =  0.97;
+      adder =  0.96;
     }
     if (dimmer < 0.03) {
       dimmer = 0.03;
-      adder = 1.03;
+      adder = 1.04;
     }
 
     for (uint16_t i = 0; i < strip.numPixels(); i++) {
-      strip.setPixelColor(i, strip.Color(0, ((sin(offset1 + ((float)i / 2.0)) + 1.0) * 100.0) * dimmer, 0));
+      strip.setPixelColor(i, strip.Color(0, ((sin(offset1 + ((float)i / 2.0)) + 1.0) * 127.0) * dimmer, 0));
     }
     strip.show();
   }
@@ -368,7 +387,7 @@ void colorFlickerGreeen2() {
 
 void TwoColorBlink() {
   static uint32_t  TClastTime, TCstartTime;
-  static uint8_t onOff=0, tidyUp = 0;
+  static uint8_t onOff = 0, tidyUp = 0;
 
   if (TCblinkStart) {
     TCstartTime = millis();
@@ -400,7 +419,7 @@ void TwoColorBlink() {
       }
       strip.show();
       TClastTime = millis();
-    }  
+    }
   }
 
   else {
@@ -472,4 +491,30 @@ void setBlinkColor(uint32_t color, uint32_t color2, uint16_t rate, uint32_t tota
 
 void allOff() {
 
+}
+
+// Slightly different, this makes the rainbow equally distributed throughout
+void rainbowCycle(uint8_t wait) {
+  uint16_t i, j;
+
+    for(i=0; i< strip.numPixels(); i++) {
+      strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
+    }
+    strip.show();
+    delay(wait);
+}
+
+// Input a value 0 to 255 to get a color value.
+// The colours are a transition r - g - b - back to r.
+uint32_t Wheel(byte WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if(WheelPos < 85) {
+    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if(WheelPos < 170) {
+    WheelPos -= 85;
+    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
 }
