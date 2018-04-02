@@ -237,9 +237,6 @@ void loop(void)
 
     doRumblePack(buttnum, pressed);
   }
-
-
-
 }
 
 void doRumblePack(uint8_t butnum, boolean pressed) {
